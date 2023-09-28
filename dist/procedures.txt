@@ -1,0 +1,136 @@
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AddCart`(IN `CusID` INT)
+BEGIN
+    	START TRANSACTION;
+        	INSERT INTO cart (TotalPrice,CustomerID) VALUES (0,CusID);
+            COMMIT;
+        END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AddCategory`(IN `N` VARCHAR(255), IN `D` VARCHAR(255))
+BEGIN
+    	START TRANSACTION;
+            INSERT category (Name,Description) VALUES (N,D);
+        COMMIT;
+    END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AddProduct`(IN `N` VARCHAR(225), IN `D` VARCHAR(255), IN `P` INT, IN `S` INT, IN `CAT` INT)
+BEGIN
+	START TRANSACTION;
+        INSERT product (ProductName,Description,Price,Stock,CategoryID) VALUES (N,D,P,S,CAT);
+    	COMMIT;
+    END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AddToCart`(IN `Pid` INT(255), IN `Cid` INT(255), IN `Q` INT)
+BEGIN
+        SET @b:=(SELECT Stock FROM product WHERE Cid = ProductID);
+        IF @b < Q THEN
+        	SELECT @c='asdsadsad';
+        	ROLLBACK;
+        ELSE
+        	INSERT dborder (OrderDate, Quantity,ProductID,CartID) VALUES (CURRENT_DATE(),Q,Pid,Cid);
+            SET @c:=(SELECT Price FROM product WHERE ProductID = PID);
+            UPDATE cart SET TotalPrice = TotalPrice + @c*Q WHERE CartID = Cid;
+            COMMIT;
+   		END IF;
+   END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AddUser`(IN `UN` VARCHAR(255), IN `FN` VARCHAR(255), IN `LN` VARCHAR(255), IN `E` VARCHAR(255), IN `PSW` VARCHAR(255), IN `Ad` VARCHAR(255), IN `Ph` INT, IN `T` INT)
+BEGIN
+	START TRANSACTION;
+        SET @a = (SELECT COUNT(UserID) FROM users);
+        INSERT users VALUES (@a+1,UN,FN,LN,E,PSW,Ad,Ph,T);
+        IF T = 1 THEN
+            SET @b = (SELECT COUNT(AdminID) FROM admin);
+            INSERT admin VALUES (@b+1,@a+1);
+        ELSEIF T = 2 THEN
+            SET @b = (SELECT COUNT(CustomerID) FROM customer);
+            INSERT customer VALUES (@b+1,@a+1);
+        END IF;
+    COMMIT;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Login`(IN `UN` VARCHAR(255), IN `PSW` VARCHAR(255))
+BEGIN
+    	SET @a:=(SELECT UserType FROM users WHERE UN = UserName AND PSW = PSWD);
+        SET @b:=(SELECT UserID FROM users WHERE UN = UserName AND PSW = PSWD);
+        
+        IF @a = 1 THEN
+        	SELECT u.UserName,u.UserType,a.AdminID FROM admin a INNER JOIN users u ON a.UserID = u.UserID AND a.UserID = @b;
+            ELSEIF @a = 2 THEN
+        	SELECT u.UserName,u.UserType,c.CustomerID FROM customer c INNER JOIN users u ON c.UserID = u.UserID AND c.UserID = @b;
+        END IF;
+    END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteCart`(Cid int)
+BEGIN
+    	START TRANSACTION;
+        	DELETE FROM cart WHERE `cart`.`CartID` = Cid;
+         	COMMIT;
+        END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteOrder`(Ono int)
+BEGIN
+    	START TRANSACTION;
+			DELETE FROM dborder WHERE `dborder`.`OrderNo` = 7;
+            COMMIT;
+        END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `getCart`(CusId int)
+BEGIN
+    	SELECT * FROM `getcarts` WHERE CustomerID = CusID;
+    END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `getCartC`(IN `Cartid` INT)
+BEGIN
+	SELECT c.CustomerID, o.OrderNo, p.ProductName, p.Price, o.Quantity, c.TotalPrice 
+    FROM cart c INNER JOIN dborder o ON o.CartID = c.CartID 
+    INNER JOIN product p ON o.ProductID = p.ProductID WHERE c.CartID = Cartid;
+    END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `modOrder`(IN `Ono` VARCHAR(255), IN `Q` INT)
+BEGIN
+		START TRANSACTION;
+    	SET @a:=(SELECT ProductID FROM dborder WHERE Ono = OrderNo);
+        SET @b:=(SELECT Stock FROM product WHERE @a = ProductID);
+        IF @b < Q THEN
+        	SELECT @c='asdsadsad';
+        	ROLLBACK;
+        ELSE
+       		SET @d:=(SELECT Quantity FROM dborder WHERE Ono = OrderNo);
+            SET @e:=(SELECT CartID FROM dborder WHERE Ono = OrderNo);
+        	UPDATE dborder SET Quantity = Q WHERE OrderNo = Ono;
+            SET @c:=(SELECT Price FROM product WHERE ProductID = @a);
+            UPDATE cart SET TotalPrice = TotalPrice + @c*Q-@c*@d WHERE CartID = @e;
+            COMMIT;
+   		END IF;
+   END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sendMessage`(IN `mess` VARCHAR(255), IN `Cind` INT, IN `Aid` INT)
+BEGIN
+    	START TRANSACTION;
+        INSERT message (Message,AdminID,CustomerID) VALUES (mess,Aid,Cusid);
+        COMMIT;
+    END$$
+DELIMITER ;
